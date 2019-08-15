@@ -35,6 +35,8 @@ func Activity(ctx *context.Context) {
 		timeFrom = timeUntil.Add(-time.Hour * 168)
 	case "monthly":
 		timeFrom = timeUntil.AddDate(0, -1, 0)
+	case "all":
+		timeFrom = time.Unix(0)
 	default:
 		ctx.Data["Period"] = "weekly"
 		timeFrom = timeUntil.Add(-time.Hour * 168)
@@ -70,6 +72,8 @@ func ActivityAuthors(ctx *context.Context) {
 		timeFrom = timeUntil.Add(-time.Hour * 168)
 	case "monthly":
 		timeFrom = timeUntil.AddDate(0, -1, 0)
+	case "all":
+		timeFrom = time.Unix(0)
 	default:
 		timeFrom = timeUntil.Add(-time.Hour * 168)
 	}
