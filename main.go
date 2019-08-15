@@ -18,6 +18,7 @@ import (
 
 	// register supported doc types
 	_ "code.gitea.io/gitea/modules/markup/csv"
+	_ "code.gitea.io/gitea/modules/markup/geojson"
 	_ "code.gitea.io/gitea/modules/markup/markdown"
 	_ "code.gitea.io/gitea/modules/markup/orgmode"
 

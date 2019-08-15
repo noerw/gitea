@@ -42,6 +42,11 @@ func (p *Parser) Extensions() []string {
 	return p.FileExtensions
 }
 
+// DisablePostprocess implements markup.Parser
+func (Parser) DisablePostprocess() bool {
+	return false
+}
+
 func envMark(envName string) string {
 	if runtime.GOOS == "windows" {
 		return "%" + envName + "%"

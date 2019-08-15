@@ -31,6 +31,11 @@ func (Parser) Extensions() []string {
 	return []string{".org"}
 }
 
+// DisablePostprocess implements markup.Parser
+func (Parser) DisablePostprocess() bool {
+	return false
+}
+
 // Render renders orgmode rawbytes to HTML
 func Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) (result []byte) {
 	defer func() {

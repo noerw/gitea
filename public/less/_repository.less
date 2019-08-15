@@ -404,6 +404,18 @@
                 overflow-x: auto;
             }
 
+            .geojson #geojsonmap {
+                height: 500px;
+                .leaflet-popup-content table {
+                    tr:nth-child(even) {
+                        background: #eee;
+                    }
+                    td {
+                        border: 0;
+                    }
+                }
+            }
+
             pre {
                 overflow: auto;
             }

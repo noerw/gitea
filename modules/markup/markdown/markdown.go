@@ -179,6 +179,11 @@ func (Parser) Extensions() []string {
 	return setting.Markdown.FileExtensions
 }
 
+// DisablePostprocess implements markup.Parser
+func (Parser) DisablePostprocess() bool {
+	return false
+}
+
 // Render implements markup.Parser
 func (Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
 	return RenderRaw(rawBytes, urlPrefix, isWiki)

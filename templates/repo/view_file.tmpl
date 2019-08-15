@@ -47,7 +47,13 @@
 	<div class="ui attached table unstackable segment">
 		<div class="file-view {{if .IsMarkup}}{{.MarkupType}}{{else if .IsRenderedHTML}}plain-text{{else if .IsTextFile}}code-view{{end}} has-emoji">
 			{{if .IsMarkup}}
-				{{if .FileContent}}{{.FileContent | Safe}}{{end}}
+				{{if .FileContent}}
+					{{if eq .MarkupType "geojson"}}
+						{{template "repo/view_file_geojson" .}}
+					{{else}}
+						{{.FileContent | Safe}}
+					{{end}}
+				{{end}}
 			{{else if .IsRenderedHTML}}
 				<pre>{{if .FileContent}}{{.FileContent | Str2html}}{{end}}</pre>
 			{{else if not .IsTextFile}}

@@ -70,3 +70,6 @@ Version: 337b431
 
 File(s): /vendor/plugins/moment/
 Version: 2.22.2
+
+File(s): /vendor/plugins/leaflet/
+Version: 1.5.1

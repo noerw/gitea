@@ -30,6 +30,7 @@ type Parser interface {
 	Name() string // markup format name
 	Extensions() []string
 	Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte
+	DisablePostprocess() bool
 }
 
 var (
@@ -79,10 +80,13 @@ func RenderWiki(filename string, rawBytes []byte, urlPrefix string, metas map[st
 func render(parser Parser, rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
 	urlPrefix = strings.Replace(urlPrefix, " ", "+", -1)
 	result := parser.Render(rawBytes, urlPrefix, metas, isWiki)
-	// TODO: one day the error should be returned.
-	result, err := PostProcess(result, urlPrefix, metas, isWiki)
-	if err != nil {
-		log.Error("PostProcess: %v", err)
+	if !parser.DisablePostprocess() {
+		// TODO: one day the error should be returned.
+		var err error
+		result, err = PostProcess(result, urlPrefix, metas, isWiki)
+		if err != nil {
+			log.Error("PostProcess: %v", err)
+		}
 	}
 	return SanitizeBytes(result)
 }

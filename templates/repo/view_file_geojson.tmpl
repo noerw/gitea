@@ -1,0 +1,41 @@
+<p id="rendererror"></p>
+<div id="geojsonmap" data-filecontent="{{.FileContent | Str2html}}"></div>
+
+<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/leaflet/leaflet.css"/>
+<script src="{{AppSubUrl}}/vendor/plugins/leaflet/leaflet.js"></script>
+<script>
+	// TODO:
+	// error i18n, style
+	// test html escaping?
+	// switch to raw view
+
+	const map = L.map('geojsonmap', { center: [0, 0], zoom: 2 })
+	L.tileLayer('https://tiles.wmflabs.org/bw-mapnik/{z}/{x}/{y}.png', {
+			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+	}).addTo(map);
+
+	function popupFromProperties(props) {
+		let table = '<table>'
+		console.error(props)
+		for (let key in props)
+			table += '<tr><th>'+key+'</th><td>'+props[key]+'</td></tr>'
+		return table += '</table>'
+	}
+
+	try {
+		const filecontent = L.DomUtil.get('geojsonmap').dataset.filecontent
+		const geojson = JSON.parse(filecontent)
+		const layer = L.geoJSON(geojson, {
+			style: { weight: 1 }
+		})
+			.bindPopup(layer => popupFromProperties(layer.feature.properties))
+			.addTo(map)
+
+		map.fitBounds(layer.getBounds())
+	} catch (err) {
+		document.querySelector('#rendererror').innerHTML = 'Could not display file: ' + err
+		console.error(err)
+	}
+
+
+</script>
