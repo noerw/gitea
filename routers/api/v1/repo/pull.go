@@ -510,6 +510,10 @@ func EditPullRequest(ctx *context.APIContext) {
 		issue.Content = form.Body
 	}
 
+	if form.State != nil {
+		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
+	}
+
 	// Update or remove deadline if set
 	if form.Deadline != nil || form.RemoveDeadline != nil {
 		var deadlineUnix timeutil.TimeStamp
@@ -526,62 +530,60 @@ func EditPullRequest(ctx *context.APIContext) {
 		issue.DeadlineUnix = deadlineUnix
 	}
 
-	// Add/delete assignees
-
-	// Deleting is done the GitHub way (quote from their api documentation):
-	// https://developer.github.com/v3/issues/#edit-an-issue
-	// "assignees" (array): Logins for Users to assign to this issue.
-	// Pass one or more user logins to replace the set of assignees on this Issue.
-	// Send an empty array ([]) to clear all assignees from the Issue.
-
-	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && (form.Assignees != nil || len(form.Assignee) > 0) {
-		err = issue_service.UpdateAssignees(issue, form.Assignee, form.Assignees, ctx.User)
-		if err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
-			} else {
-				ctx.Error(http.StatusInternalServerError, "UpdateAssignees", err)
-			}
-			return
-		}
-	}
-
-	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && form.Milestone != 0 &&
-		issue.MilestoneID != form.Milestone {
-		oldMilestoneID := issue.MilestoneID
-		issue.MilestoneID = form.Milestone
-		if err = issue_service.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
-			ctx.Error(http.StatusInternalServerError, "ChangeMilestoneAssign", err)
-			return
-		}
-	}
-
-	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && form.Labels != nil {
-		labels, err := models.GetLabelsInRepoByIDs(ctx.Repo.Repository.ID, form.Labels)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetLabelsInRepoByIDsError", err)
-			return
-		}
-
-		if ctx.Repo.Owner.IsOrganization() {
-			orgLabels, err := models.GetLabelsInOrgByIDs(ctx.Repo.Owner.ID, form.Labels)
+	// the following fields are NOT available for change to the IssuePoster!
+	if ctx.Repo.CanWrite(models.UnitTypePullRequests) {
+		if form.Assignees != nil || len(form.Assignee) > 0 {
+			// Add/delete assignees
+			// Deleting is done the GitHub way (quote from their api documentation):
+			// https://developer.github.com/v3/issues/#edit-an-issue
+			// "assignees" (array): Logins for Users to assign to this issue.
+			// Pass one or more user logins to replace the set of assignees on this Issue.
+			// Send an empty array ([]) to clear all assignees from the Issue.
+			err = issue_service.UpdateAssignees(issue, form.Assignee, form.Assignees, ctx.User)
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "GetLabelsInOrgByIDs", err)
+				if models.IsErrUserNotExist(err) {
+					ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
+				} else {
+					ctx.Error(http.StatusInternalServerError, "UpdateAssignees", err)
+				}
+				return
+			}
+		}
+
+		if form.Milestone != 0 &&
+			issue.MilestoneID != form.Milestone {
+			oldMilestoneID := issue.MilestoneID
+			issue.MilestoneID = form.Milestone
+			if err = issue_service.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
+				ctx.Error(http.StatusInternalServerError, "ChangeMilestoneAssign", err)
+				return
+			}
+		}
+
+		if form.Labels != nil {
+			labels, err := models.GetLabelsInRepoByIDs(ctx.Repo.Repository.ID, form.Labels)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetLabelsInRepoByIDsError", err)
 				return
 			}
 
-			labels = append(labels, orgLabels...)
-		}
+			if ctx.Repo.Owner.IsOrganization() {
+				orgLabels, err := models.GetLabelsInOrgByIDs(ctx.Repo.Owner.ID, form.Labels)
+				if err != nil {
+					ctx.Error(http.StatusInternalServerError, "GetLabelsInOrgByIDs", err)
+					return
+				}
 
-		if err = issue.ReplaceLabels(labels, ctx.User); err != nil {
-			ctx.Error(http.StatusInternalServerError, "ReplaceLabelsError", err)
-			return
+				labels = append(labels, orgLabels...)
+			}
+
+			if err = issue.ReplaceLabels(labels, ctx.User); err != nil {
+				ctx.Error(http.StatusInternalServerError, "ReplaceLabelsError", err)
+				return
+			}
 		}
 	}
 
-	if form.State != nil {
-		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
-	}
 	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.User)
 	if err != nil {
 		if models.IsErrDependenciesLeft(err) {
