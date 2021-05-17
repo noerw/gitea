@@ -252,6 +252,28 @@ func reqAdmin() func(ctx *context.APIContext) {
 	}
 }
 
+func reqIssueEditor() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+		if err != nil {
+			if models.IsErrIssueNotExist(err) {
+				ctx.NotFound()
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+			}
+			return
+		}
+
+		if !issue.IsPoster(ctx.User.ID) &&
+			!ctx.Repo.CanWrite(models.UnitTypePullRequests) &&
+			!ctx.IsUserRepoAdmin() &&
+			!ctx.IsUserSiteAdmin() {
+			ctx.Error(http.StatusForbidden, "reqIssueEditor", "user should have a permission to edit this issue")
+			return
+		}
+	}
+}
+
 // reqRepoWriter user should have a permission to write to a repo, or be a site admin
 func reqRepoWriter(unitTypes ...models.UnitType) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
@@ -798,7 +820,7 @@ func Routes() *web.Route {
 					})
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetIssue).
-							Patch(reqToken(), bind(api.EditIssueOption{}), repo.EditIssue)
+							Patch(reqToken(), reqIssueEditor(), bind(api.EditIssueOption{}), repo.EditIssue)
 						m.Group("/comments", func() {
 							m.Combo("").Get(repo.ListIssueComments).
 								Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueCommentOption{}), repo.CreateIssueComment)
@@ -888,7 +910,7 @@ func Routes() *web.Route {
 						Post(reqToken(), mustNotBeArchived, bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetPullRequest).
-							Patch(reqToken(), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
+							Patch(reqToken(), reqIssueEditor(), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
 						m.Get(".diff", repo.DownloadPullDiff)
 						m.Get(".patch", repo.DownloadPullPatch)
 						m.Post("/update", reqToken(), repo.UpdatePullRequest)
